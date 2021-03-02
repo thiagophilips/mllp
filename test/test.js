@@ -8,12 +8,13 @@ var FS = String.fromCharCode(0x1c);
 var CR = String.fromCharCode(0x0d);
 
 describe('test server with client data exchange', function () {
-    var hl7 = '';
-    var server;
+    var hl7 = ''; //HL7 message will be read
+    var server; // MLLP Server
 
     before(function () {
+        //Reading HL7 message from file
         hl7 = fs.readFileSync('./test/fixtures/test.txt').toString().split('\n').join('\r');
-
+        //Starting Server
         server = new mllp.MLLPServer('127.0.0.1', 1234);
     });
 
@@ -109,4 +110,37 @@ describe("sends a large message for data exchange", function () {
             });
         });
     });
+});
+
+describe("sends a A11 message for data exchange", function () {
+    var hl7A01 = '';
+    var hl7A02 = '';
+    var hl7A11 = '';
+
+    before(function () {
+        //Using another messages for sample
+        hl7A01 = fs.readFileSync('./test/fixtures/A01_patient_admit.txt').toString().split('\n').join('\r');
+        hl7A11 = fs.readFileSync('./test/fixtures/A11_Cancel_Admission_Sample_Message.txt').toString().split('\n').join('\r');
+        hl7A02 = fs.readFileSync('./test/fixtures/A02_Patient_Transfer_Message.txt').toString().split('\n').join('\r');
+        server = new mllp.MLLPServer('127.0.0.1', 5321);
+    });
+    describe("sending a large A11 Message and Receiving an Ack Back", function () {
+        var ack, error;
+        console.log('THIAGO' + hl7A11.toString);
+        beforeEach(function (done) {
+            // Send outbound messages
+            server.send("127.0.0.1", 5321, hl7A11, function (err, ackData) {
+                error = err;
+                ack = ackData;
+                done();
+            });
+        });
+        // Subscribe to inbound messages
+        it("receives a HL7 Message", function () {
+            server.on('hl7', function (data) {
+                assert.equal(hl7A11, data);
+            });
+        });
+    });
+
 });
